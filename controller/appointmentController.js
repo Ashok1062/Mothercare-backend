@@ -5,9 +5,9 @@ const Doctor = require("../models/doctor");
 // ✅ Create new appointment
 const createAppointment = async (req, res) => {
   try {
-    const { patientId, patientName, department, notes, status } = req.body;
+    const { patientId, department, notes, status } = req.body;
 
-    if (!patientId || !department || !notes) {
+    if (!patientId || !patientName || !department || !notes) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -19,13 +19,12 @@ const createAppointment = async (req, res) => {
 
     // ✅ Create appointment
     const newAppointment = await Appointment.create({
-      patient: foundPatient._id,
-      patientName,
+      patient: foundPatient._id, 
       department,
       notes,
       status: status || "Pending",
     });
-
+    console.log("New appointment created:", newAppointment);
     // Add appointment reference to patient
     await Patient.findByIdAndUpdate(foundPatient._id, {
       $push: { appointments: newAppointment._id },
@@ -47,7 +46,7 @@ const createAppointment = async (req, res) => {
 const getAllAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find()
-      .populate("patient", "name age gender contact")
+      .populate("patient", "patientName age gender contact")
       .populate("doctor", "name department");
     res.json(appointments);
   } catch (error) {
@@ -63,7 +62,7 @@ const getAppointmentById = async (req, res) => {
     const { id } = req.params;
 
     const app = await Appointment.findById(id)
-      .populate("patient", "name")
+      .populate("patient", "patientName")
       .populate("doctor", "name department");
 
     if (!app) {
@@ -83,7 +82,7 @@ const getAppointmentsByDoctor = async (req, res) => {
   try {
     const { doctorId } = req.params;
     const apps = await Appointment.find({ doctor: doctorId })
-      .populate("patient", "name age gender contact")
+      .populate("patient", "patientName age gender contact")
       .populate("doctor", "name department");
     res.json(apps);
   } catch (error) {
@@ -105,7 +104,7 @@ const updateAppointment = async (req, res) => {
       { new: true }
     )
       .populate("doctor", "name department")
-      .populate("patient", "name");
+      .populate("patient", "patientName");
 
     if (!updated) {
       return res.status(404).json({ message: "Appointment not found" });
@@ -129,7 +128,7 @@ const getAppointmentsByPatientId = async (req, res) => {
     // Fetch all appointments for this patient
     const appointments = await Appointment.find({ patient: id })
       .populate("doctor", "name department")
-      .populate("patient", "name age gender")
+      .populate("patient", "patientName age gender")
       .sort({ appointmentDate: -1 });
 
     if (!appointments.length) {
